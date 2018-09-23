@@ -1,0 +1,63 @@
+---
+title: "Reproducible Research Course Project 2"
+Author:
+        "Omer Shechter"
+Date:
+        "24/09/2018"
+output: 
+  html_document:
+    keep_md: true
+---
+
+# Synopsis
+# Data Processing
+### Load the Data Set
+Download the files and unzip them into a data directory. 
+
+#### Load R libreries 
+```{r results='asis', echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
+#The R.Utils is required for the bunzip2 
+library(R.utils)
+library(dplyr)
+```
+
+```{r cache=TRUE}
+if(!file.exists("data")) {  
+        dir.create("data")  
+}  
+if(!file.exists("./data/StormData.csv.bz2")) {  
+        fileUrl <- "https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2FStormData.csv.bz2"  
+        download.file(fileUrl, destfile="./data/StormData.csv.bz2")  
+        if(!file.exists("./data/StormData.csv"))   
+                bunzip2("./data/StormData.csv.bz2", "./data/StormData.csv", remove = FALSE, skip = TRUE) 
+}
+StormsData<-read.csv("./data/StormData.csv")
+```
+
+### Initial review  
+```{r}
+dim(StormsData)
+```
+
+
+using str looking on the dataset 
+```{r}
+names(StormsData)
+```
+
+
+# Data Processing
+Create a subset data frame which will use the relvanet variables 
+EVTYPE - The Event type as is 
+
+```{r}
+StormDF<-data.frame(Event.Type=StormsData$EVTYPE)
+```
+
+The data analyze will be based on years - Create a new column , which will have the begin year of the event
+Use the BGN_TIME to extract the years
+```{r}
+StormDF<-cbind(StormDF,years = with(StormsData,format(as.Date(BGN_DATE, format="%m/%d/%Y"),"%Y")))
+```
+
