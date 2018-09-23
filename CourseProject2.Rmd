@@ -11,6 +11,7 @@ output:
 
 # Synopsis
 # Data Processing
+
 ### Load the Data Set
 Download the files and unzip them into a data directory. 
 
@@ -20,9 +21,10 @@ knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
 #The R.Utils is required for the bunzip2 
 library(R.utils)
 library(dplyr)
+library(mosaic)
 ```
 
-```{r cache=TRUE}
+```{r}
 if(!file.exists("data")) {  
         dir.create("data")  
 }  
@@ -47,7 +49,7 @@ names(StormsData)
 ```
 
 
-# Data Processing
+### Processing
 Create a subset data frame which will use the relvanet variables 
 EVTYPE - The Event type as is 
 
@@ -59,5 +61,36 @@ The data analyze will be based on years - Create a new column , which will have 
 Use the BGN_TIME to extract the years
 ```{r}
 StormDF<-cbind(StormDF,years = with(StormsData,format(as.Date(BGN_DATE, format="%m/%d/%Y"),"%Y")))
+```
+
+Add the Fatalities and injuries columns as is  
+```{r}
+Fatalities.No<-StormsData$FATALITIES
+Injuries.No<-StormsData$INJURIES
+StormDF<-cbind(StormDF,data.frame(Fatalities.No))
+StormDF<-cbind(StormDF,data.frame(Injuries.No))
+```
+Add the Damage Columns using the PROPDMG, PROPDMGEXP CROPDMG and the CROPDMGEXP 
+
+Create a Dameg.cost function , based on the values from PROPDMG multiple by 
+Diffrent factors (K - 1000 , M - 1000000 , B - 1000000000)
+Any other value assume error and put zero 
+```{r}
+#Copy the Two Damage Columns to the new DataFrame
+StormDF$Damage.Cost<-StormsData$PROPDMG
+StormDF$Damage.Factor<-StormsData$PROPDMGEXP
+# Build a new Column with (K - 1000 , M - 1000000 , B - 1000000000)
+#Any other value assume error and put zero 
+StormDF<-StormDF %>%  
+      mutate(Damage.Cost.Factor = as.numeric(case_when(
+      Damage.Factor =="K" ~ 1000,  Damage.Factor =="M" ~ 1000000,
+      Damage.Factor =="B" ~ 1000000000,(Damage.Factor !="M" |Damage.Factor !="B" | Damage.Factor !="K")~0)))
+#REplace the Damage cost column with the the Damage.Cost * Damage.Cost.Factor
+StormDF$Damage.Cost<-StormDF$Damage.Cost * StormDF$Damage.Cost.Factor
+#view how table of the cost factor 
+table(StormDF$Damage.Cost.Factor)
+#remove the temporary columns
+StormDF<-select(StormDF,Event.Type,years,Fatalities.No,Injuries.No,Damage.Cost)
+head(StormDF)
 ```
 

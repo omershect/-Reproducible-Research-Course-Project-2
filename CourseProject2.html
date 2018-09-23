@@ -335,7 +335,7 @@ StormsData&lt;-read.csv(&quot;./data/StormData.csv&quot;)</code></pre>
 <div id="initial-review" class="section level3">
 <h3>Initial review</h3>
 <pre class="r"><code>dim(StormsData)</code></pre>
-<pre><code>## [1] 902297     37</code></pre>
+<pre><code>## [1] 291630     37</code></pre>
 <p>using str looking on the dataset</p>
 <pre class="r"><code>names(StormsData)</code></pre>
 <pre><code>##  [1] &quot;STATE__&quot;    &quot;BGN_DATE&quot;   &quot;BGN_TIME&quot;   &quot;TIME_ZONE&quot;  &quot;COUNTY&quot;    
@@ -347,13 +347,46 @@ StormsData&lt;-read.csv(&quot;./data/StormData.csv&quot;)</code></pre>
 ## [31] &quot;ZONENAMES&quot;  &quot;LATITUDE&quot;   &quot;LONGITUDE&quot;  &quot;LATITUDE_E&quot; &quot;LONGITUDE_&quot;
 ## [36] &quot;REMARKS&quot;    &quot;REFNUM&quot;</code></pre>
 </div>
-</div>
-<div id="data-processing-1" class="section level1">
-<h1>Data Processing</h1>
+<div id="processing" class="section level3">
+<h3>Processing</h3>
 <p>Create a subset data frame which will use the relvanet variables EVTYPE - The Event type as is</p>
 <pre class="r"><code>StormDF&lt;-data.frame(Event.Type=StormsData$EVTYPE)</code></pre>
 <p>The data analyze will be based on years - Create a new column , which will have the begin year of the event Use the BGN_TIME to extract the years</p>
 <pre class="r"><code>StormDF&lt;-cbind(StormDF,years = with(StormsData,format(as.Date(BGN_DATE, format=&quot;%m/%d/%Y&quot;),&quot;%Y&quot;)))</code></pre>
+<p>Add the Fatalities and injuries columns as is</p>
+<pre class="r"><code>Fatalities.No&lt;-StormsData$FATALITIES
+Injuries.No&lt;-StormsData$INJURIES
+StormDF&lt;-cbind(StormDF,data.frame(Fatalities.No))
+StormDF&lt;-cbind(StormDF,data.frame(Injuries.No))</code></pre>
+<p>Add the Damage Columns using the PROPDMG, PROPDMGEXP CROPDMG and the CROPDMGEXP</p>
+<p>Create a Dameg.cost function , based on the values from PROPDMG multiple by Diffrent factors (K - 1000 , M - 1000000 , B - 1000000000) Any other value assume error and put zero</p>
+<pre class="r"><code>#Copy the Two Damage Columns to the new DataFrame
+StormDF$Damage.Cost&lt;-StormsData$PROPDMG
+StormDF$Damage.Factor&lt;-StormsData$PROPDMGEXP
+# Build a new Column with (K - 1000 , M - 1000000 , B - 1000000000)
+#Any other value assume error and put zero 
+StormDF&lt;-StormDF %&gt;%  
+      mutate(Damage.Cost.Factor = as.numeric(case_when(
+      Damage.Factor ==&quot;K&quot; ~ 1000,  Damage.Factor ==&quot;M&quot; ~ 1000000,
+      Damage.Factor ==&quot;B&quot; ~ 1000000000,(Damage.Factor !=&quot;M&quot; |Damage.Factor !=&quot;B&quot; | Damage.Factor !=&quot;K&quot;)~0)))
+#REplace the Damage cost column with the the Damage.Cost * Damage.Cost.Factor
+StormDF$Damage.Cost&lt;-StormDF$Damage.Cost * StormDF$Damage.Cost.Factor
+#view how table of the cost factor 
+table(StormDF$Damage.Cost.Factor)</code></pre>
+<pre><code>## 
+##      0   1000  1e+06  1e+09 
+## 219865  67132   4625      8</code></pre>
+<pre class="r"><code>#remove the temporary columns
+StormDF&lt;-select(StormDF,Event.Type,years,Fatalities.No,Injuries.No,Damage.Cost)
+head(StormDF)</code></pre>
+<pre><code>##   Event.Type years Fatalities.No Injuries.No Damage.Cost
+## 1    TORNADO  1950             0          15       25000
+## 2    TORNADO  1950             0           0        2500
+## 3    TORNADO  1951             0           2       25000
+## 4    TORNADO  1951             0           2        2500
+## 5    TORNADO  1951             0           2        2500
+## 6    TORNADO  1951             0           6        2500</code></pre>
+</div>
 </div>
 
 
