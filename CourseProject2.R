@@ -1,30 +1,11 @@
----
-title: "Reproducible Research Course Project 2"
-Author:
-        "Omer Shechter"
-Date:
-        "24/09/2018"
-output: 
-  html_document:
-    keep_md: true
----
-
-# Synopsis
-# Data Processing
-
-### Load the Data Set
-Download the files and unzip them into a data directory. 
-
-#### Load R libreries 
-```{r results='asis', echo=FALSE, include=FALSE}
+## ----results='asis', echo=FALSE, include=FALSE---------------------------
 knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
 #The R.Utils is required for the bunzip2 
 library(R.utils)
 library(dplyr)
 library(mosaic)
-```
 
-```{r}
+## ------------------------------------------------------------------------
 if(!file.exists("data")) {  
         dir.create("data")  
 }  
@@ -35,47 +16,26 @@ if(!file.exists("./data/StormData.csv.bz2")) {
                 bunzip2("./data/StormData.csv.bz2", "./data/StormData.csv", remove = FALSE, skip = TRUE) 
 }
 StormsData<-read.csv("./data/StormData.csv")
-```
 
-### Initial review  
-```{r}
+## ------------------------------------------------------------------------
 dim(StormsData)
-```
 
-
-using str looking on the dataset 
-```{r}
+## ------------------------------------------------------------------------
 names(StormsData)
-```
 
-
-### Processing
-Create a subset data frame which will use the relvanet variables 
-EVTYPE - The Event type as is 
-
-```{r}
+## ------------------------------------------------------------------------
 StormDF<-data.frame(Event.Type=StormsData$EVTYPE)
-```
 
-The data analyze will be based on years - Create a new column , which will have the begin year of the event
-Use the BGN_TIME to extract the years
-```{r}
+## ------------------------------------------------------------------------
 StormDF<-cbind(StormDF,years = with(StormsData,format(as.Date(BGN_DATE, format="%m/%d/%Y"),"%Y")))
-```
 
-Add the Fatalities and injuries columns as is  
-```{r}
+## ------------------------------------------------------------------------
 Fatalities.No<-StormsData$FATALITIES
 Injuries.No<-StormsData$INJURIES
 StormDF<-cbind(StormDF,data.frame(Fatalities.No))
 StormDF<-cbind(StormDF,data.frame(Injuries.No))
-```
-Add the Damage Columns using the PROPDMG, PROPDMGEXP CROPDMG and the CROPDMGEXP 
 
-Create a Dameg.cost function , based on the values from PROPDMG multiple by 
-Diffrent factors (K - 1000 , M - 1000000 , B - 1000000000)
-Any other value assume error and put zero 
-```{r}
+## ------------------------------------------------------------------------
 #Copy the Two Damage Columns to the new DataFrame
 StormDF$Damage.Cost<-StormsData$PROPDMG
 StormDF$Damage.Factor<-StormsData$PROPDMGEXP
@@ -92,13 +52,8 @@ table(StormDF$Damage.Cost.Factor)
 #remove the temporary columns
 StormDF<-select(StormDF,Event.Type,years,Fatalities.No,Injuries.No,Damage.Cost)
 head(StormDF)
-```
 
-
-Create a Crop.Dameg.cost function , based on the values from CROPDMG multiple by 
-Diffrent factors (K - 1000 , M - 1000000 , B - 1000000000)
-Any other value assume error and put zero 
-```{r}
+## ------------------------------------------------------------------------
 #Copy the Two CROP Damage Columns to the new DataFrame
 StormDF$Crop.Damage.Cost<-StormsData$CROPDMG
 StormDF$Crop.Damage.Factor<-StormsData$CROPDMGEXP
@@ -115,3 +70,4 @@ table(StormDF$Crop.Damage.Cost.Factor)
 #remove the temporary columns
 StormDF<-select(StormDF,Event.Type,years,Fatalities.No,Injuries.No,Property.Damage.Cost,Crop.Damage.Cost)
 head(StormDF)
+

@@ -386,6 +386,67 @@ head(StormDF)</code></pre>
 ## 4    TORNADO  1951             0           2        2500
 ## 5    TORNADO  1951             0           2        2500
 ## 6    TORNADO  1951             0           6        2500</code></pre>
+<p>Create a Prperty.Dameg.cost function , based on the values from PROPDMG multiple by Diffrent factors (K - 1000 , M - 1000000 , B - 1000000000) Any other value assume error and put zero</p>
+<pre class="r"><code>#Copy the Two Damage Columns to the new DataFrame
+StormDF$Property.Damage.Cost&lt;-StormsData$PROPDMG
+StormDF$Property.Damage.Factor&lt;-StormsData$PROPDMGEXP
+# Build a new Column with (K - 1000 , M - 1000000 , B - 1000000000)
+#Any other value assume error and put zero 
+StormDF&lt;-StormDF %&gt;%  
+      mutate(Property.Damage.Cost.Factor = as.numeric(case_when(
+      Property.Damage.Factor ==&quot;K&quot; ~ 1000,  Property.Damage.Factor ==&quot;M&quot; ~ 1000000,
+      Property.Damage.Factor ==&quot;B&quot; ~ 1000000000,(Property.Damage.Factor !=&quot;M&quot; |Property.Damage.Factor !=&quot;B&quot; | Property.Damage.Factor !=&quot;K&quot;)~0)))
+#REplace the Damage cost column with the the Damage.Cost * Damage.Cost.Factor
+StormDF$Property.Damage.Cost&lt;-StormDF$Property.Damage.Cost * StormDF$Property.Damage.Cost.Factor
+#view how table of the cost factor 
+table(StormDF$Property.Damage.Cost.Factor)</code></pre>
+<pre><code>## 
+##      0   1000  1e+06  1e+09 
+## 219865  67132   4625      8</code></pre>
+<pre class="r"><code>#remove the temporary columns
+StormDF&lt;-select(StormDF,Event.Type,years,Fatalities.No,Injuries.No,Property.Damage.Cost)
+head(StormDF)</code></pre>
+<pre><code>##   Event.Type years Fatalities.No Injuries.No Property.Damage.Cost
+## 1    TORNADO  1950             0          15                25000
+## 2    TORNADO  1950             0           0                 2500
+## 3    TORNADO  1951             0           2                25000
+## 4    TORNADO  1951             0           2                 2500
+## 5    TORNADO  1951             0           2                 2500
+## 6    TORNADO  1951             0           6                 2500</code></pre>
+<p>Create a Crop.Dameg.cost function , based on the values from CROPDMG multiple by Diffrent factors (K - 1000 , M - 1000000 , B - 1000000000) Any other value assume error and put zero</p>
+<pre class="r"><code>#Copy the Two CROP Damage Columns to the new DataFrame
+StormDF$Crop.Damage.Cost&lt;-StormsData$CROPDMG
+StormDF$Crop.Damage.Factor&lt;-StormsData$CROPDMGEXP
+# Build a new Column with (K - 1000 , M - 1000000 , B - 1000000000)
+#Any other value assume error and put zero 
+StormDF&lt;-StormDF %&gt;%  
+      mutate(Crop.Damage.Cost.Factor = as.numeric(case_when(
+      Crop.Damage.Factor ==&quot;K&quot; ~ 1000,  Crop.Damage.Factor ==&quot;M&quot; ~ 1000000,
+      Crop.Damage.Factor ==&quot;B&quot; ~ 1000000000,(Crop.Damage.Factor !=&quot;M&quot; |Crop.Damage.Factor !=&quot;B&quot; | Crop.Damage.Factor !=&quot;K&quot;)~0)))
+#REplace the Damage cost column with the the Damage.Cost * Damage.Cost.Factor
+StormDF$Crop.Damage.Cost&lt;-StormDF$Crop.Damage.Cost * StormDF$Crop.Damage.Cost.Factor
+#view how table of the cost factor 
+table(StormDF$Crop.Damage.Cost.Factor)</code></pre>
+<pre><code>## 
+##      0   1000  1e+06  1e+09 
+## 285413   5770    442      5</code></pre>
+<pre class="r"><code>#remove the temporary columns
+StormDF&lt;-select(StormDF,Event.Type,years,Fatalities.No,Injuries.No,Property.Damage.Cost,Crop.Damage.Cost)
+head(StormDF)</code></pre>
+<pre><code>##   Event.Type years Fatalities.No Injuries.No Property.Damage.Cost
+## 1    TORNADO  1950             0          15                25000
+## 2    TORNADO  1950             0           0                 2500
+## 3    TORNADO  1951             0           2                25000
+## 4    TORNADO  1951             0           2                 2500
+## 5    TORNADO  1951             0           2                 2500
+## 6    TORNADO  1951             0           6                 2500
+##   Crop.Damage.Cost
+## 1                0
+## 2                0
+## 3                0
+## 4                0
+## 5                0
+## 6                0</code></pre>
 </div>
 </div>
 
