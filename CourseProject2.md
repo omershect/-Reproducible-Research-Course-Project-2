@@ -1,5 +1,5 @@
 ---
-title: "Reproducible Research Course Project 2"
+title: "Reproducible Research Course Project 2 - Impact of Wheater events on Health and Economic"
 Date: 24/09/2018
 output:
   html_document:
@@ -9,6 +9,9 @@ Author: Omer Shechter
 ---
 
 # Synopsis
+The purpose of this research project is to asses the impact of wheater events on public health and the economy.
+Using the NOAA Storm Database, which contains data from the years 1950-2011 about wheater events, Property and Crop cost damage as well as numbers of injuries and fatalities in the US.
+The research aim is to find out the most impact events in term of economic (cost), and public health (number of injuries and fatalities).
 
 # Data Processing
 
@@ -32,7 +35,8 @@ if(!file.exists("./data/StormData.csv.bz2")) {
 StormsData<-read.csv("./data/StormData.csv")
 ```
 
-### Initial review  
+### Initial review 
+Look on the dimansion of the data 
 
 ```r
 dim(StormsData)
@@ -60,34 +64,44 @@ names(StormsData)
 ## [36] "REMARKS"    "REFNUM"
 ```
 ### Processing
-Create a subset data frame which will use the relvanet variables 
+Create a subset data frame which will use the relevant variables only: 
 EVTYPE - The Event type as is 
+BGN_TIME - This is the exact begin time, it will be used to extract the year of the event
+PROPDMG - Property Damage cost 
+PROPDMGEXP - Property Damage Cost Factor (K-1000,M-1000000,B-1000000000)
+CROPDMG - Crop Damage cost 
+CROPDMGEXP-Crop Damage Cost Factor (K-1000,M-1000000,B-1000000000)
+FATALITIES - Number of deaths
+INJURIES - Number of injuries 
 
 
 ```r
 StormDF<-data.frame(Event.Type=StormsData$EVTYPE)
 ```
 
-The data analyze will be based on years - Create a new column , which will have the begin year of the event
-Use the BGN_TIME to extract the years
+The data analyzed will be based on years - Create a new column, which will have the beginning year of the event
+Use the BGN_TIME to extract the years.
 
 ```r
 StormDF<-cbind(StormDF,years = with(StormsData,format(as.Date(BGN_DATE, format="%m/%d/%Y"),"%Y")))
 ```
 
-Add the Fatalities and injuries columns as is  
+Add the Fatalities and injuries columns as is. 
 
 ```r
 Fatalities.No<-StormsData$FATALITIES
+
 Injuries.No<-StormsData$INJURIES
+
 StormDF<-cbind(StormDF,data.frame(Fatalities.No))
+
 StormDF<-cbind(StormDF,data.frame(Injuries.No))
 ```
-Add the Damage Columns using the PROPDMG, PROPDMGEXP CROPDMG and the CROPDMGEXP 
 
+Add the Damage Columns using the PROPDMG, PROPDMGEXP CROPDMG, and the CROPDMGEXP 
 Create a Dameg.cost function , based on the values from PROPDMG multiple by 
-Diffrent factors (K - 1000 , M - 1000000 , B - 1000000000)
-Any other value assume error and put zero 
+Different factors (K - 1000 , M - 1000000 , B - 1000000000)
+Any other value assumes error and put zero Add the Fatalities and injuries columns as is. 
 
 ```r
 #Copy the Two Damage Columns to the new DataFrame
@@ -99,7 +113,7 @@ StormDF<-StormDF %>%
       mutate(Property.Damage.Cost.Factor = as.numeric(case_when(
       Property.Damage.Factor =="K" ~ 1000,  Property.Damage.Factor =="M" ~ 1000000,
       Property.Damage.Factor =="B" ~ 1000000000,(Property.Damage.Factor !="M" |Property.Damage.Factor !="B" | Property.Damage.Factor !="K")~0)))
-#REplace the Damage cost column with the the Damage.Cost * Damage.Cost.Factor
+#Replace the Damage cost column with the the Damage.Cost * Damage.Cost.Factor
 StormDF$Property.Damage.Cost<-StormDF$Property.Damage.Cost * StormDF$Property.Damage.Cost.Factor
 #view how table of the cost factor 
 table(StormDF$Property.Damage.Cost.Factor)
@@ -126,8 +140,8 @@ head(StormDF)
 ## 5    TORNADO  1951             0           2                 2500
 ## 6    TORNADO  1951             0           6                 2500
 ```
-Create a Crop.Dameg.cost function , based on the values from CROPDMG multiple by 
-Diffrent factors (K - 1000 , M - 1000000 , B - 1000000000)
+Create a Crop.Dameg.cost function, based on the values from CROPDMG multiple by 
+Different factors (K - 1000 , M - 1000000 , B - 1000000000)
 Any other value assume error and put zero 
 
 ```r
@@ -174,78 +188,105 @@ head(StormDF)
 ## 5                0
 ## 6                0
 ```
-Look at the nmumber of observiation per year ...
-The assigment hints that the recent years have more data
+
+create aggrgaition data per Fatalties numbers per even.
 
 ```r
-#Creat a data frame with the frequancy of each event per year
-Event_Count<-count(StormDF,vars=c("years","Event.Type"))
-Total_Event_PEr_Year<-data.frame(Event.Count = with(Event_Count,tapply(freq, years,sum)),Year = sort(unique(StormDF$years)))
+#Aggrgate based on Event Type - All years 1950 - 2011
+Fatalities<-aggregate(StormDF$Fatalities.No,by=list(Category=StormDF$Event.Type),sum)
+
+Fatalities$Type<-"Fatlity"
+
+colnames(Fatalities)<-c("Event.Type","Total","Type")
+
+Fatalities<-Fatalities[order(Fatalities$Total, decreasing = T), ]
 ```
 
 
-Plot a bar plot of total events per year 1950-2011
-
-```r
-theme_update(plot.title = element_text(hjust = 0.5))
-ggplot(data=Total_Event_PEr_Year, aes(x=Year, y=Event.Count)) +
-    geom_bar(stat="identity",colour="black",fill="blue")+theme(axis.text.x = element_text(size = 12,angle = -90))+labs(y="Events count",x = "Year", title = "Storm Wheater Event count per year")+theme(axis.text.y = element_text(size = 12))
-```
-
-![](CourseProject2_files/figure-html/unnamed-chunk-11-1.png)<!-- -->
-
-The above plots show that starting from the year 1995 there is large amount of event data 
-The analyzes will be based on the years 1995-2011
-Subset the data in order to use data from years 1995 - 2011 
-
-
-```r
-#subset and create new data frame which include only the years 1995-2011
-Year_1995_2011<-year(as.Date(StormDF$years, format = "%Y"))>=1995
-StormDF_1995_2011<-filter(StormDF,Year_1995_2011)
-```
-
-
-create aggrgaition data per Fatalties numbers per event type and select the top 10 events 
+create aggrgaition data per Injuries numbers per event type. 
 
 ```r
 #Aggrgate based on Event Type 
-Fatalities<-aggregate(StormDF_1995_2011$Fatalities.No,by=list(Category=StormDF_1995_2011$Event.Type),sum)
-colnames(Fatalities)<-c("Event.Type","Fatalties")
-Fatalities<-Fatalities[order(Fatalities$Fatalties, decreasing = T), ]
-Fatalities<-Fatalities[1:10,]
+Injuries<-aggregate(StormDF$Injuries.No,by=list(Category=StormDF$Event.Type),sum)
+
+Injuries$Type<-"Injury"
+
+colnames(Injuries)<-c("Event.Type","Total","Type")
+
+Injuries<-Injuries[order(Injuries$Total, decreasing = T), ]
 ```
 
 
-create aggrgaition data per Injuries numbers per event type and select the top 10 events 
+Create a combined data frame for injury and fatalities to create the overall population health impact
+for all years (1950-2011), Select top 10.
+Using join as it keep the order of the two joined Data Frame.
 
 ```r
-#Aggrgate based on Event Type 
-Injuries<-aggregate(StormDF_1995_2011$Injuries.No,by=list(Category=StormDF_1995_2011$Event.Type),sum)
-colnames(Injuries)<-c("Event.Type","Injuries")
-Injuries<-Injuries[order(Injuries$Injuries, decreasing = T), ]
-Injuries<-Injuries[1:10,]
+Health<-join(Injuries,Fatalities,by="Event.Type",type="inner")
+#subset by top 10
+Health<-head(Health,10)
+
+head(Health)
+```
+
+```
+##       Event.Type Total   Type Total    Type
+## 1        TORNADO 91346 Injury  5633 Fatlity
+## 2      TSTM WIND  6957 Injury   504 Fatlity
+## 3          FLOOD  6789 Injury   470 Fatlity
+## 4 EXCESSIVE HEAT  6525 Injury  1903 Fatlity
+## 5      LIGHTNING  5230 Injury   816 Fatlity
+## 6           HEAT  2100 Injury   937 Fatlity
 ```
 
 
-create aggrgaition data per Proprety Damage cost per event type and select the top 10 events 
+create aggrgaition data per Proprety Damage cost per event type . 
 
 ```r
 #Aggrgate based on Event Type 
-Cost.Property.Damage<-aggregate(StormDF_1995_2011$Property.Damage.Cost,by=list(Category=StormDF_1995_2011$Event.Type),sum)
-colnames(Cost.Property.Damage)<-c("Event.Type","Cost")
+Cost.Property.Damage<-aggregate(StormDF$Property.Damage.Cost,by=list(Category=StormDF$Event.Type),sum)
+
+Cost.Property.Damage$Type<-"Property"
+
+colnames(Cost.Property.Damage)<-c("Event.Type","Cost","Type")
+
 Cost.Property.Damage<-Cost.Property.Damage[order(Cost.Property.Damage$Cost, decreasing = T), ]
-Cost.Property.Damage<-Cost.Property.Damage[1:10,]
 ```
 
-create aggrgaition data per Crop Damage cost per event type and select the top 10 events 
+create aggrgaition data per Crop Damage cost per event type .
 
 ```r
 #Aggrgate based on Event Type 
-Cost.Crop.Damage<-aggregate(StormDF_1995_2011$Crop.Damage.Cost,by=list(Category=StormDF_1995_2011$Event.Type),sum)
-colnames(Cost.Crop.Damage)<-c("Event.Type","Cost")
+Cost.Crop.Damage<-aggregate(StormDF$Crop.Damage.Cost,by=list(Category=StormDF$Event.Type),sum)
+
+Cost.Crop.Damage$Type<-"Crop"
+
+colnames(Cost.Crop.Damage)<-c("Event.Type","Cost","Type")
+
 Cost.Crop.Damage<-Cost.Crop.Damage[order(Cost.Crop.Damage$Cost, decreasing = T), ]
-Cost.Crop.Damage<-Cost.Crop.Damage[1:10,]
+```
+
+
+Create a combined data frame for Crop and Damage cost to create the overall Cost impact
+for all years (1950-2011) select top 10.
+Using join as it keep the order of the two joined Data Frame.
+
+```r
+Cost<-join(Cost.Property.Damage,Cost.Crop.Damage,by="Event.Type",type="inner")
+#Subset by top 10
+Cost<-head(Cost,10)
+
+head(Cost)
+```
+
+```
+##          Event.Type         Cost     Type       Cost Type
+## 1             FLOOD 144657709800 Property 5661968450 Crop
+## 2 HURRICANE/TYPHOON  69305840000 Property 2607872800 Crop
+## 3           TORNADO  56925660480 Property  414953110 Crop
+## 4       STORM SURGE  43323536000 Property       5000 Crop
+## 5       FLASH FLOOD  16140811510 Property 1421317100 Crop
+## 6              HAIL  15727366720 Property 3025537450 Crop
 ```
 
 
@@ -255,5 +296,40 @@ This section contains the answares to the two questions:
 Across the United States, which types of events have the greatest economic consequences?
 
 ## Harmfull events - Population Health 
+Plot the top 10 combined injuries and fatalities events for  1950-2011 
+Using the melt function (reshape2 library) organize the data to allow plotting at the same panel.
+
+```r
+colnames(Health)<-c("Event.Type","Total.Injuries","Type.Injuries","Total.Fatalties","Type.Fatalties")
+
+Health_long <- melt(Health, id.vars = c("Event.Type","Type.Injuries","Type.Fatalties"))
+
+theme_update(plot.title = element_text(hjust = 0.5))
+
+ggplot(data=Health_long,aes(x=Event.Type, y=value, fill=variable)) +
+            geom_bar(stat="identity",position ="stack") +theme(axis.text.x = element_text(size = 10,angle = -45))+labs(y="Total Injuries/Fatalties",x = "Event Type", title = "Health impact by event-Years 1950-2011",size=12)+scale_fill_manual("Impact Type", values = c("Total.Injuries" = "gray", "Total.Fatalties" = "red",size=12))+theme(axis.text.y.left =   element_text(size = 10))+theme(axis.text.y.right =  element_text(size = 10))
+```
+
+![](CourseProject2_files/figure-html/unnamed-chunk-16-1.png)<!-- -->
 
 
+## Harmfull events - Cost Impact
+Plot the top 10 combined injuries and fatalities events for  1950-2011  
+sing the melt function (reshape2 library) organize the data to allow plotting at the same panel.
+
+```r
+colnames(Cost)<-c("Event.Type","Total.Property","Type.Property","Total.Crop","Type.Crop")
+
+Cost_long <- melt(Cost, id.vars = c("Event.Type","Type.Property","Type.Crop"))
+
+theme_update(plot.title = element_text(hjust = 0.5))
+
+ggplot(data=Cost_long,aes(x=Event.Type, y=value, fill=variable)) +
+   geom_bar(stat="identity",position ="stack") +theme(axis.text.x = element_text(size = 10,angle = -45))+labs(y="Total Property/Crop Cost",x = "Event Type", title = "Cost impact by event-Years 1950-2011")+scale_fill_manual("Cost Type", values = c("Total.Property" = "gray", "Total.Crop" = "red",size=10))+theme(axis.text.y.left =   element_text(size = 10))+theme(axis.text.y.right =  element_text(size = 10))
+```
+
+![](CourseProject2_files/figure-html/unnamed-chunk-17-1.png)<!-- -->
+
+# Conclousion
+When analyzing the two plots it can be seen that for economic impact the most harmful events are floods, regarding public health, the most harmful event is Tornado.
+We can also see that regarding the economic impact the property damages are more significant then crop damages costs.
